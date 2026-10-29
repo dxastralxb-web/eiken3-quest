@@ -1,121 +1,97 @@
-
 <!DOCTYPE html>
 <html lang="ja">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="viewport" content="width=device-width,initial-scale=1">
 <title>英検3級 QUEST</title>
 <style>
-body{font-family:system-ui,sans-serif;background:#f3f6ff;color:#24304a;margin:0;padding:18px}
-main{max-width:560px;margin:auto}
-header,.panel{background:white;padding:20px;border-radius:18px;margin-bottom:15px}
-h1{margin:0;font-size:26px;color:#4059a9}
-.sub{color:#65718b}
-button{width:100%;padding:14px;margin:6px 0;border:0;border-radius:12px;background:#4059a9;color:white;font-size:16px;font-weight:bold}
-button.choice{background:#edf0ff;color:#24304a;text-align:left}
-button:disabled{opacity:.65}
-#feedback{font-weight:bold;line-height:1.7}
+body{font-family:system-ui,sans-serif;background:#f3f6ff;color:#24304a;margin:0;padding:16px}main{max-width:650px;margin:auto}h1{text-align:center;color:#3456a4}.card{background:white;padding:18px;border-radius:16px;margin:12px 0;box-shadow:0 2px 8px #ccd3e5}button{background:#3456a4;color:white;border:0;border-radius:10px;padding:12px;margin:4px;cursor:pointer;font-size:16px}.choice{display:block;width:100%;text-align:left;background:#eef2ff;color:#24304a;margin:8px 0}.choice:active{background:#ccd8ff}.muted{color:#68738a;font-size:14px}#feedback{font-weight:bold;line-height:1.7}progress{width:100%;height:16px}
 </style>
 </head>
-<body>
-<main>
-<header>
-<h1>⚔️ 英検3級 QUEST</h1>
-<p class="sub">1日5分！ 英語の冒険を始めよう</p>
-<strong>⭐ 正解数：<span id="score">0</span></strong>
-</header>
-<section class="panel">
-<h2>今日のミッション</h2>
-<button onclick="start('word')">📘 単語クエスト</button>
-<button onclick="start('grammar')">🧩 文法クエスト</button>
-<button onclick="start('talk')">💬 会話クエスト</button>
-<div id="quiz" hidden>
-<p id="progress"></p>
-<h3 id="question"></h3>
-<div id="choices"></div>
-<p id="feedback" aria-live="polite"></p>
-<button id="next" onclick="nextQuestion()" hidden>次の問題へ ➜</button>
-</div>
-</section>
-<section class="panel">
-<h3>🎯 勉強のコツ</h3>
-<p>間違えても大丈夫！ ヒントを読んで、少しずつ覚えよう。</p>
-<button onclick="showHint()">💡 ヒントを見る</button>
-<p id="hint"></p>
-</section>
+<body><main>
+<h1>⭐ 英検3級 QUEST</h1>
+<div class="card"><b id="count">QUEST 1 / 70</b><progress id="bar" value="0" max="70"></progress><p id="score">正解：0問</p><p class="muted">単語20問・文法20問・会話20問・読解10問</p></div>
+<div class="card"><p id="category"></p><h3 id="question"></h3><div id="choices"></div><p id="feedback"></p><button id="next" hidden>次の問題へ →</button></div>
+<div class="card"><button onclick="restart()">最初から挑戦</button><p class="muted">正解した問題数はこの端末のブラウザに保存されます。</p></div>
 </main>
 <script>
-const data={
-word:[
-["「usually」の意味は？",["いつも","ときどき","昨日"],0,"usually＝たいてい、ふつうは"],
-["「borrow」の意味は？",["売る","借りる","作る"],1,"borrow＝借りる"],
-["「famous」の意味は？",["有名な","難しい","親切な"],0,"famous＝有名な"],
-["「arrive」の意味は？",["出発する","到着する","忘れる"],1,"arrive＝到着する"],
-["「enough」の意味は？",["十分な","高価な","静かな"],0,"enough＝十分な"]
-],
-grammar:[
-["She ( ) tennis every Sunday.",["play","plays","playing"],1,"主語がSheなら、現在形の動詞にsがつくよ。"],
-["I have lived here ( ) 2020.",["for","since","during"],1,"sinceは始まった時点、forは期間。"],
-["I want ( ) a doctor.",["be","to be","being"],1,"want to＋動詞の原形＝～したい。"],
-["If it ( ) tomorrow, I will stay home.",["rains","rain","rained"],0,"Ifの中は、未来のことでも現在形を使うよ。"],
-["This book is ( ) than that one.",["interesting","more interesting","most interesting"],1,"長めの形容詞の比較級はmore＋形容詞。"]
-],
-talk:[
-["A: How was your weekend? B: ( )",["It was great.","I am thirteen.","At seven."],0,"How was ～? は「～はどうだった？」"],
-["A: Would you like some tea? B: ( )",["Yes, please.","I like tea yesterday.","At home."],0,"Would you like ～? は「～はいかが？」"],
-["A: Thank you for your help. B: ( )",["You're welcome.","I'm twelve.","Good morning yesterday."],0,"You're welcome.＝どういたしまして。"],
-["A: What do you think of this movie? B: ( )",["I think it's great.","I went by bus.","It's on Monday."],0,"What do you think of ～? は感想を聞く表現。"],
-["A: Could you open the window? B: ( )",["Sure.","I'm a student.","Yesterday."],0,"Could you ～? は丁寧なお願い。"]
-]
-};
-let type="word",index=0,questions=[],correct=false;
-let score=Number(localStorage.getItem("eikenScore")||0);
-document.getElementById("score").textContent=score;
-function start(t){
-type=t;index=0;questions=data[t];
-document.getElementById("quiz").hidden=false;
-document.getElementById("hint").textContent="";
-showQuestion();
-}
-function showQuestion(){
-let q=questions[index];correct=false;
-document.getElementById("progress").textContent=`問題 ${index+1} / ${questions.length}`;
-document.getElementById("question").textContent=q[0];
-document.getElementById("feedback").textContent="";
-document.getElementById("next").hidden=true;
-let c=document.getElementById("choices");c.innerHTML="";
-q[1].forEach((v,i)=>{
-let b=document.createElement("button");b.className="choice";
-b.textContent=["A","B","C"][i]+"： "+v;
-b.onclick=()=>answer(i);c.appendChild(b);
-});
-}
-function answer(i){
-if(correct)return;
-correct=true;
-let q=questions[index];
-document.querySelectorAll(".choice").forEach(b=>b.disabled=true);
-if(i===q[2]){
-score++;localStorage.setItem("eikenScore",score);
-document.getElementById("score").textContent=score;
-document.getElementById("feedback").textContent="🎉 正解！ "+q[3];
-}else{
-document.getElementById("feedback").textContent="惜しい！ 正解は "+["A","B","C"][q[2]]+"。 "+q[3];
-}
-document.getElementById("next").hidden=false;
-document.getElementById("next").textContent=index===questions.length-1?"もう一度挑戦！":"次の問題へ ➜";
-}
-function nextQuestion(){
-if(index===questions.length-1){start(type);return;}
-index++;showQuestion();
-}
-function showHint(){
-if(document.getElementById("quiz").hidden){
-document.getElementById("hint").textContent="まずは単語クエストから挑戦！ わからなくても、答えの解説を読めばOK。";
-}else{
-document.getElementById("hint").textContent=questions[index][3];
-}
-}
-</script>
-</body>
-</html>
+const Q=[];
+function add(c,q,a,ok,why){Q.push({c,q,a,ok,why})}
+[
+["important","重要な","大切なこと","必要なこと"],
+["usually","ふつうは","めったにない","すぐに"],
+["different","違った","同じ","簡単な"],
+["expensive","値段が高い","安い","空腹の"],
+["decide","決める","忘れる","借りる"],
+["invite","招待する","説明する","到着する"],
+["borrow","借りる","貸す","買う"],
+["enough","十分な","危険な","親切な"],
+["during","〜の間に","〜の前に","〜の外に"],
+["information","情報","練習","旅行"],
+["environment","環境","約束","食事"],
+["problem","問題","贈り物","季節"],
+["healthy","健康な","有名な","忙しい"],
+["carefully","注意深く","突然","いつも"],
+["possible","可能な","退屈な","正直な"],
+["arrive","到着する","出発する","選ぶ"],
+["practice","練習する","閉じる","教える"],
+["popular","人気のある","疲れた","静かな"],
+["return","戻る","始める","泳ぐ"],
+["foreign","外国の","近くの","特別な"]
+].forEach(x=>add("単語","「"+x[0]+"」の意味は？",[x[1],x[2],x[3]],0,"「"+x[0]+"」は「"+x[1]+"」という意味です。"));
+[
+["I ( ) to school every day.","go","goes","going",0,"主語がIなので動詞はgoです。"],
+["She ( ) tennis yesterday.","played","plays","play",0,"yesterdayは過去を表すのでplayedです。"],
+["He is ( ) than his brother.","taller","tall","tallest",0,"thanがある比較ではtallerを使います。"],
+["I have lived here ( ) 2020.","since","for","during",0,"sinceは始まった時点を表します。"],
+["We enjoyed ( ) soccer.","playing","play","played",0,"enjoyの後ろは動詞のing形です。"],
+["This book was ( ) by my mother.","written","write","wrote",0,"受け身はbe動詞＋過去分詞です。"],
+["I want ( ) English.","to study","studying","studied",0,"wantの後ろはto＋動詞です。"],
+["If it ( ) tomorrow, I will stay home.","rains","rain","rained",0,"if節で未来のことを表すときも現在形です。"],
+["There ( ) two cats in the room.","are","is","was",0,"two catsは複数なのでareです。"],
+["I am interested ( ) music.","in","at","on",0,"be interested inで「〜に興味がある」です。"],
+["You ( ) be quiet in the library.","should","would","could",0,"shouldは「〜すべき」です。"],
+["My father has ( ) finished dinner.","just","yet","ever",0,"justは「ちょうど〜したところ」です。"],
+["This is the ( ) movie I have ever seen.","best","better","good",0,"最上級はbestです。"],
+["I was tired, ( ) I went to bed early.","so","but","or",0,"soは「だから」です。"],
+["Do you know ( ) he lives?","where","what","who",0,"場所を尋ねる間接疑問文なのでwhereです。"],
+["She can ( ) very well.","swim","swims","swimming",0,"canの後ろは動詞の原形です。"],
+["I have never ( ) to Canada.","been","went","go",0,"経験を表すhave been toです。"],
+["This bag is too heavy for me ( ) carry.","to","for","of",0,"too〜toで「〜すぎて…できない」です。"],
+["Neither Tom nor Ken ( ) here.","is","are","be",0,"neither A nor Bでは、ここではKenに合わせてisです。"],
+["Would you mind ( ) the window?","opening","open","to open",0,"Would you mindの後ろは動詞のing形です。"]
+].forEach(x=>add("文法",x[0],[x[1],x[2],x[3]],x[4],x[5]));
+[
+["Would you like some tea?","Yes, please.","Yes, I do yesterday.","I like tea yesterday.",0,"飲み物を勧められたのでYes, please.が自然です。"],
+["How was your weekend?","It was great.","At seven o'clock.","For two days ago.",0,"週末の感想を尋ねています。"],
+["Could you help me?","Of course.","I'm fourteen.","It's sunny.",0,"手伝いを頼まれたのでOf course.と答えます。"],
+["I'm sorry I'm late.","That's all right.","Here you are.","Good luck.",0,"謝罪に対する自然な返事です。"],
+["How often do you play tennis?","Twice a week.","At the park.","With my brother.",0,"頻度を聞かれたのでTwice a week.です。"],
+["What does your father do?","He is a doctor.","He is kind.","He is at home.",0,"職業を尋ねる表現です。"],
+["Would you mind opening the door?","Not at all.","Yes, I open.","It's a door.",0,"依頼への承諾としてNot at all.が自然です。"],
+["Why don't we go shopping?","Sounds good.","At the station.","I went yesterday.",0,"提案への返事です。"],
+["How long does it take?","About 20 minutes.","By bus.","At eight.",0,"所要時間を尋ねています。"],
+["May I use your pen?","Sure. Here you are.","I have two pens.","It is blue.",0,"許可を求められたときの返事です。"],
+["What are you looking for?","My keys.","In the morning.","Very carefully.",0,"何を探しているかを聞かれています。"],
+["Thank you for your help.","You're welcome.","I'm sorry.","Good night.",0,"お礼への返事です。"],
+["How about going for a walk?","That's a good idea.","I walked yesterday.","At five o'clock.",0,"散歩の提案への返事です。"],
+["Which do you prefer, tea or coffee?","Coffee, please.","At home.","Two cups.",0,"どちらが好きかを聞かれています。"],
+["I passed the exam!","Congratulations!","Be careful!","Never mind.",0,"合格の知らせにはCongratulations!です。"],
+["Could you tell me the way to the station?","Go straight and turn left.","It's ten minutes old.","I like trains.",0,"道を尋ねられています。"],
+["What's the weather like today?","It's sunny.","It's Monday.","It's six o'clock.",0,"天気を尋ねています。"],
+["I have a headache.","You should get some rest.","I like your hat.","See you yesterday.",0,"頭痛には休むことを勧める返事が自然です。"],
+["Would you like to join us?","I'd love to.","I joined yesterday.","It's my book.",0,"誘いへの承諾です。"],
+["I'm afraid I can't come today.","That's too bad.","Here you are.","You're welcome.",0,"来られないという話への自然な返事です。"]
+].forEach(x=>add("会話",x[0],[x[1],x[2],x[3]],x[4],x[5]));
+const passages=[
+{p:"Mika likes animals. Every Sunday, she visits a small animal shelter with her brother. They clean the rooms and feed the cats. Last Sunday, Mika met a friendly white cat. She hopes to adopt it someday.",q:[["When does Mika visit the shelter?","Every Sunday","Every Monday","Every Friday",0,"本文にEvery Sundayとあります。"],["Who goes with Mika?","Her brother","Her teacher","Her friend",0,"with her brotherとあります。"],["What do they do there?","Feed the cats","Play soccer","Cook dinner",0,"They feed the catsとあります。"],["What color was the cat?","White","Black","Brown",0,"a friendly white catとあります。"],["What does Mika hope to do?","Adopt the cat","Sell the cat","Teach the cat English",0,"adoptは「引き取る」です。"]]},
+{p:"Ken wanted to improve his English, so he started listening to English podcasts on the train. At first, he understood very little. He listened for fifteen minutes every morning. After three months, he could understand much more and felt more confident.",q:[["Why did Ken listen to podcasts?","To improve his English","To learn cooking","To find a job",0,"英語を上達させるためです。"],["Where did he listen?","On the train","At the beach","In a library",0,"on the trainとあります。"],["How long did he listen each morning?","Fifteen minutes","One hour","Five minutes",0,"fifteen minutesとあります。"],["How long did he continue?","Three months","Three days","One year",0,"After three monthsとあります。"],["How did he feel later?","More confident","More tired every day","Angry",0,"more confidentは「より自信がついた」です。"]]}
+];
+passages.forEach((s,i)=>s.q.forEach((x,j)=>add("読解","【英文】"+s.p+"\n\n質問："+x[0],[x[1],x[2],x[3]],x[4],x[5])));
+let pos=0,score=0,answered=false;
+function render(){answered=false;let x=Q[pos];document.getElementById("count").textContent="QUEST "+(pos+1)+" / "+Q.length;document.getElementById("bar").value=pos;document.getElementById("category").textContent="【"+x.c+"】";document.getElementById("question").textContent=x.q;document.getElementById("choices").innerHTML="";document.getElementById("feedback").textContent="";document.getElementById("next").hidden=true;x.a.forEach((a,i)=>{let b=document.createElement("button");b.className="choice";b.textContent=String.fromCharCode(65+i)+". "+a;b.onclick=()=>answer(i);document.getElementById("choices").appendChild(b)});document.getElementById("score").textContent="正解："+score+"問"}
+function answer(i){if(answered)return;answered=true;let x=Q[pos];let ok=i===x.ok;if(ok)score++;document.querySelectorAll(".choice").forEach((b,j)=>{b.disabled=true;if(j===x.ok)b.style.background="#c9f4d5"});document.getElementById("feedback").textContent=(ok?"⭕ 正解！":"❌ 正解は "+String.fromCharCode(65+x.ok)+" です。")+"\n"+x.why;document.getElementById("score").textContent="正解："+score+"問";document.getElementById("next").hidden=false;document.getElementById("next").textContent=pos===Q.length-1?"結果を見る":"次の問題へ →"}
+document.getElementById("next").onclick=()=>{if(pos<Q.length-1){pos++;render()}else{document.getElementById("category").textContent="QUEST CLEAR！";document.getElementById("question").textContent="70問中 "+score+"問 正解！";document.getElementById("choices").innerHTML="";document.getElementById("feedback").textContent=score>=56?"すばらしい！よく頑張りました。":"間違えた問題を復習して、もう一度挑戦しよう！";document.getElementById("next").hidden=true;document.getElementById("bar").value=70;localStorage.setItem("eikenQuest70Score",score)}};
+function restart(){pos=0;score=0;render()}
+render();
+</script></body></html>
